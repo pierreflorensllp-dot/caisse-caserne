@@ -25,7 +25,20 @@
 
   /* APP */
   .app{display:grid;grid-template-columns:1fr 340px;height:100vh;}
-  @media(max-width:720px){.app{grid-template-columns:1fr;grid-template-rows:1fr auto;}.ticket-col{border-left:none;border-top:1px solid var(--border);max-height:42vh;}html,body{overflow:auto;}}
+  @media(max-width:720px){
+    .app{grid-template-columns:1fr;grid-template-rows:1fr auto;}
+    .ticket-col{border-left:none;border-top:1px solid var(--border);max-height:42vh;}
+    html,body{overflow:auto;}
+    .top-bar{flex-wrap:wrap;padding:10px 12px;gap:6px;}
+    .top-actions{width:100%;justify-content:flex-end;flex-wrap:wrap;gap:5px;}
+    .icon-btn{font-size:11px;padding:6px 9px;}
+    .icon-btn .btn-label{display:none;}
+    .icon-btn .btn-icon{display:inline;}
+    .logo-sub{display:none;}
+  }
+  @media(min-width:721px){
+    .btn-icon-only{display:none;}
+  }
 
   /* LEFT */
   .left-col{display:flex;flex-direction:column;overflow:hidden;}
@@ -197,18 +210,46 @@
         <div><div class="logo-text">Caisse Caserne</div><div class="logo-sub" id="currentDate"></div></div>
       </div>
       <div class="top-actions">
+        <!-- Chip utilisateur toujours visible -->
         <div class="user-chip" onclick="logout()" id="userChip" title="Changer d'utilisateur">
           <div class="chip-avatar" id="chipAvatar"></div>
           <span class="chip-name" id="chipName"></span>
         </div>
-        <button class="icon-btn amber" onclick="openReassort()">📦 Réassort</button>
-        <button class="icon-btn" id="clotureBtnTop" onclick="openCloture()" style="border-color:rgba(240,82,82,.35);color:var(--red);background:var(--red-dim);">🔒 Clôturer</button>
-        <button class="icon-btn blue" id="adminBtnTop" onclick="openAdmin()">⚙️ Admin</button>
-        <button class="icon-btn" onclick="openConfig()">
-          <div class="sync-dot" id="syncDot"></div>
-          <span id="syncLabel">Configurer</span>
+
+        <!-- Boutons desktop uniquement -->
+        <div class="desktop-actions" style="display:flex;gap:6px;align-items:center;">
+          <button class="icon-btn amber" onclick="openReassort()">📦 Réassort</button>
+          <button class="icon-btn" id="clotureBtnTop" onclick="openCloture()" style="border-color:rgba(240,82,82,.35);color:var(--red);background:var(--red-dim);">🔒 Clôturer</button>
+          <button class="icon-btn blue" id="adminBtnTop" onclick="openAdmin()">⚙️ Admin</button>
+          <button class="icon-btn" onclick="openConfig()">
+            <div class="sync-dot" id="syncDot"></div>
+            <span id="syncLabel">Configurer</span>
+          </button>
+        </div>
+
+        <!-- Mobile : point sync + menu hamburger -->
+        <div class="sync-pill" style="display:none;align-items:center;gap:6px;padding:5px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:100px;">
+          <div class="sync-dot" id="syncDotMobile"></div>
+          <span style="font-size:11px;color:var(--text2);" id="syncLabelMobile">Configurer</span>
+        </div>
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()" style="display:none;padding:7px 10px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:16px;cursor:pointer;">☰</button>
+      </div>
+
+      <!-- Drawer mobile -->
+      <div class="mobile-drawer" id="mobileDrawer" style="display:none;position:fixed;top:0;right:0;bottom:0;width:240px;background:var(--bg2);border-left:1px solid var(--border2);z-index:400;padding:20px 16px;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <span style="font-size:14px;font-weight:600;">Menu</span>
+          <button onclick="toggleMobileMenu()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">×</button>
+        </div>
+        <button class="icon-btn amber" style="width:100%;justify-content:center;padding:12px;" onclick="toggleMobileMenu();openReassort()">📦 Réassort</button>
+        <button class="icon-btn" id="clotureBtnMobile" style="width:100%;justify-content:center;padding:12px;border-color:rgba(240,82,82,.35);color:var(--red);background:var(--red-dim);" onclick="toggleMobileMenu();openCloture()">🔒 Clôturer</button>
+        <button class="icon-btn blue" id="adminBtnMobile" style="width:100%;justify-content:center;padding:12px;" onclick="toggleMobileMenu();openAdmin()">⚙️ Admin</button>
+        <button class="icon-btn" style="width:100%;justify-content:center;padding:12px;" onclick="toggleMobileMenu();openConfig()">
+          <div class="sync-dot" id="syncDotDrawer"></div>
+          <span id="syncLabelDrawer" style="margin-left:4px;">Configurer</span>
         </button>
       </div>
+      <div id="drawerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:399;" onclick="toggleMobileMenu()"></div>
     </div>
 
     <div class="stock-alert-bar" id="stockAlertBar">
@@ -331,6 +372,30 @@
   </div>
 </div>
 
+<!-- MODALE PROMPT CUSTOM -->
+<div class="modal-overlay" id="modalPrompt">
+  <div class="modal" style="max-width:340px;text-align:center;">
+    <p id="promptMsg" style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:14px;"></p>
+    <input type="password" id="promptInput" placeholder="Mot de passe" style="text-align:center;letter-spacing:.2em;font-size:16px;" onkeydown="if(event.key==='Enter')confirmPrompt()">
+    <div class="modal-btns" style="margin-top:12px;">
+      <button class="modal-cancel" onclick="cancelPrompt()">Annuler</button>
+      <button class="modal-save" onclick="confirmPrompt()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODALE CONFIRM CUSTOM -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:320px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:10px;">⚠️</div>
+    <p id="confirmMsg" style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:20px;"></p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="cancelConfirm()">Annuler</button>
+      <button onclick="doConfirm()" style="flex:2;padding:9px;border-radius:var(--radius-sm);border:none;background:var(--red);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">Confirmer</button>
+    </div>
+  </div>
+</div>
+
 <!-- MOT DE PASSE ADMIN -->
 <div class="modal-overlay" id="modalPwd">
   <div class="modal" style="max-width:340px;text-align:center;">
@@ -431,7 +496,7 @@ async function loadCloudConfig(){
   if(!scriptUrl){renderLogin();return;}
   setSyncStatus('loading','Chargement...');
   try{
-    const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'getConfig'})});
+    const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'getConfig'}),redirect:'follow'});
     const data=await res.json();
     if(data.status==='ok'&&data.config){
       const cfg=data.config;
@@ -461,6 +526,8 @@ function login(uid){
   document.getElementById('chipName').textContent=currentUser.name;
   document.getElementById('clotureBtnTop').style.display='';
   document.getElementById('adminBtnTop').style.display=currentUser.admin?'':'none';
+  if(document.getElementById('clotureBtnMobile')) document.getElementById('clotureBtnMobile').style.display='';
+  if(document.getElementById('adminBtnMobile')) document.getElementById('adminBtnMobile').style.display=currentUser.admin?'':'none';
   updateStats();renderProducts();checkStockAlerts();updateSyncStatus();
 }
 function logout(){
@@ -532,7 +599,7 @@ async function valider(){
   cart={};renderTicket();renderProducts();checkStockAlerts();
   if(scriptUrl){
     setSyncStatus('loading','Sync...');
-    try{const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});const data=await res.json();
+    try{const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),redirect:'follow'});const data=await res.json();
       if(data.status==='ok'){if(data.stocks){stocks=data.stocks;localStorage.setItem('caisse_stocks',JSON.stringify(stocks));renderProducts();checkStockAlerts();}setSyncStatus('ok','Synchronisé');toast('✓ Vente — '+fmt(total),'success');}
       else throw new Error(data.message);
     }catch(e){setSyncStatus('error','Erreur sync');toast('Vente locale OK — sync échouée','error');}
@@ -566,7 +633,7 @@ async function validerReassort(){
   const payload={action:'reassort',date:today,time:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),items,vendeur:currentUser?.name||'Inconnu'};
   if(scriptUrl){
     setSyncStatus('loading','Sync...');
-    try{const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});const data=await res.json();
+    try{const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),redirect:'follow'});const data=await res.json();
       if(data.status==='ok'){if(data.stocks){stocks=data.stocks;localStorage.setItem('caisse_stocks',JSON.stringify(stocks));renderProducts();checkStockAlerts();}setSyncStatus('ok','Synchronisé');toast('📦 Réassort enregistré','success');}
       else throw new Error(data.message);
     }catch(e){setSyncStatus('error','Erreur sync');toast('Réassort local OK — sync échouée','error');}
@@ -616,10 +683,7 @@ function toggleAdmin(id){
   if(u.admin && admins.length<=1){ toast('Il faut au moins un admin','error'); return; }
   if(!u.admin){
     // passer admin : demander un mot de passe
-    const pwd=prompt(`Choisir un mot de passe pour ${u.name} :`);
-    if(!pwd) return;
-    u.admin=true; u.pwd=hashPwd(pwd);
-    toast(u.name+' est maintenant admin','success');
+    openPromptModal(`Choisir un mot de passe pour ${u.name} :`, pwd=>{ if(!pwd)return; u.admin=true; u.pwd=hashPwd(pwd); renderAdminUsers(); toast(u.name+' est maintenant admin','success'); });
   } else {
     u.admin=false; u.pwd=null;
     toast(u.name+' rétrogradé en coopérateur','amber');
@@ -628,11 +692,7 @@ function toggleAdmin(id){
 }
 function changePwd(id){
   const u=users.find(x=>x.id===id); if(!u) return;
-  const pwd=prompt(`Nouveau mot de passe pour ${u.name} :`);
-  if(!pwd) return;
-  u.pwd=hashPwd(pwd);
-  localStorage.setItem('caisse_users',JSON.stringify(users));
-  toast('Mot de passe mis à jour','success');
+  openPromptModal(`Nouveau mot de passe pour ${u.name} :`, pwd=>{ if(!pwd)return; u.pwd=hashPwd(pwd); localStorage.setItem('caisse_users',JSON.stringify(users)); toast('Mot de passe mis à jour','success'); });
 }
 function addUser(){
   const name=document.getElementById('newUserName').value.trim(),emoji=document.getElementById('newUserEmoji').value.trim()||'👤';
@@ -659,7 +719,7 @@ function renderAdminProducts(){
     </div>`).join('');
 }
 function toggleProduct(i){products[i].active=products[i].active===false;renderAdminProducts();}
-function deleteProduct(i){if(confirm('Supprimer '+products[i].name+' ?')){products.splice(i,1);renderAdminProducts();}}
+function deleteProduct(i){openConfirmModal('Supprimer '+products[i].name+' ?',()=>{products.splice(i,1);renderAdminProducts();});}
 function addProduct(){
   const emoji=document.getElementById('newPEmoji').value.trim()||'🛍️';
   const name=document.getElementById('newPName').value.trim();
@@ -685,7 +745,7 @@ async function pushConfigToSheets(){
   if(!scriptUrl)return;
   try{
     const payload={action:'saveConfig',config:{users,products,stocks}};
-    const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+    const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),redirect:'follow'});
     const data=await res.json();
     if(data.status==='ok')setSyncStatus('ok','Synchronisé');
     else throw new Error();
@@ -695,12 +755,47 @@ async function pushConfigToSheets(){
 // STATS / SYNC / UTILS
 function updateStats(){document.getElementById('statTx').textContent=dayStats.tx;document.getElementById('statArticles').textContent=dayStats.articles;document.getElementById('statCA').textContent=fmt(dayStats.ca);}
 function updateSyncStatus(){if(scriptUrl)setSyncStatus('ok','Connecté');else setSyncStatus('','Configurer');}
-function setSyncStatus(s,l){document.getElementById('syncDot').className='sync-dot'+(s?' '+s:'');document.getElementById('syncLabel').textContent=l;}
+function setSyncStatus(s,l){
+  const cls='sync-dot'+(s?' '+s:'');
+  ['syncDot','syncDotMobile','syncDotDrawer'].forEach(id=>{const el=document.getElementById(id);if(el)el.className=cls;});
+  ['syncLabel','syncLabelMobile','syncLabelDrawer'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=l;});
+}
+function toggleMobileMenu(){
+  const drawer=document.getElementById('mobileDrawer');
+  const overlay=document.getElementById('drawerOverlay');
+  const open=drawer.style.display==='flex';
+  drawer.style.display=open?'none':'flex';
+  overlay.style.display=open?'none':'block';
+}
 function openConfig(){document.getElementById('scriptUrlInput').value=scriptUrl;document.getElementById('modalConfig').classList.add('open');}
 function saveConfig(){scriptUrl=document.getElementById('scriptUrlInput').value.trim();localStorage.setItem('caisse_script_url',scriptUrl);closeModal('modalConfig');updateSyncStatus();if(scriptUrl)toast('URL enregistrée','success');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',2800);}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal(e.currentTarget.id);}));
+
+// MODALES CUSTOM (remplacent prompt/confirm natifs)
+let _promptCb=null, _confirmCb=null;
+function openPromptModal(msg, cb){
+  _promptCb=cb;
+  document.getElementById('promptMsg').textContent=msg;
+  document.getElementById('promptInput').value='';
+  document.getElementById('modalPrompt').classList.add('open');
+  setTimeout(()=>document.getElementById('promptInput').focus(),200);
+}
+function confirmPrompt(){
+  const val=document.getElementById('promptInput').value.trim();
+  closeModal('modalPrompt');
+  if(_promptCb){_promptCb(val||null);_promptCb=null;}
+}
+function cancelPrompt(){closeModal('modalPrompt');_promptCb=null;}
+
+function openConfirmModal(msg, cb){
+  _confirmCb=cb;
+  document.getElementById('confirmMsg').textContent=msg;
+  document.getElementById('modalConfirm').classList.add('open');
+}
+function doConfirm(){closeModal('modalConfirm');if(_confirmCb){_confirmCb();_confirmCb=null;}}
+function cancelConfirm(){closeModal('modalConfirm');_confirmCb=null;}
 
 // CLÔTURE
 const FONDS_CAISSE = 30;
@@ -761,7 +856,7 @@ async function validerCloture(){
   if(scriptUrl){
     setSyncStatus('loading','Sync...');
     try{
-      const res = await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+      const res = await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload),redirect:'follow'});
       const data = await res.json();
       if(data.status==='ok'){ setSyncStatus('ok','Synchronisé'); }
       else throw new Error(data.message);
