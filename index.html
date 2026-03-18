@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -425,6 +426,24 @@ if(dayStats.date!==today){dayStats={tx:0,articles:0,ca:0,date:today};localStorag
 
 function fmt(v){return v.toFixed(2).replace('.',',')+' €';}
 
+// CHARGEMENT CONFIG DEPUIS SHEETS AU DÉMARRAGE
+async function loadCloudConfig(){
+  if(!scriptUrl){renderLogin();return;}
+  setSyncStatus('loading','Chargement...');
+  try{
+    const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'getConfig'})});
+    const data=await res.json();
+    if(data.status==='ok'&&data.config){
+      const cfg=data.config;
+      if(cfg.users&&cfg.users.length){users=cfg.users;localStorage.setItem('caisse_users',JSON.stringify(users));}
+      if(cfg.products&&cfg.products.length){products=cfg.products;localStorage.setItem('caisse_products',JSON.stringify(products));}
+      if(cfg.stocks){stocks=cfg.stocks;localStorage.setItem('caisse_stocks',JSON.stringify(stocks));}
+    }
+    setSyncStatus('ok','Synchronisé');
+  }catch(e){setSyncStatus('error','Hors ligne');}
+  renderLogin();
+}
+
 // LOGIN
 function renderLogin(){
   document.getElementById('loginGrid').innerHTML=users.map(u=>`
@@ -450,7 +469,7 @@ function logout(){
   document.getElementById('loginScreen').style.display='flex';
   renderLogin();
 }
-renderLogin();
+loadCloudConfig();
 
 // PRODUITS
 function renderProducts(){
@@ -659,7 +678,18 @@ function saveAdminAndClose(){
   localStorage.setItem('caisse_products',JSON.stringify(products));
   localStorage.setItem('caisse_users',JSON.stringify(users));
   closeModal('modalAdmin');renderProducts();checkStockAlerts();renderLogin();
-  toast('Admin enregistré','success');
+  pushConfigToSheets();
+  toast('Admin enregistré — synchronisation en cours','success');
+}
+async function pushConfigToSheets(){
+  if(!scriptUrl)return;
+  try{
+    const payload={action:'saveConfig',config:{users,products,stocks}};
+    const res=await fetch(scriptUrl,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
+    const data=await res.json();
+    if(data.status==='ok')setSyncStatus('ok','Synchronisé');
+    else throw new Error();
+  }catch(e){setSyncStatus('error','Erreur sync config');}
 }
 
 // STATS / SYNC / UTILS
