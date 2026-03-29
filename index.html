@@ -3,11 +3,19 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Caisse — Caserne</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+
   --bg:#0f1117;--bg2:#181c27;--bg3:#1e2333;
   --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);
   --text:#f0f2f8;--text2:#8b92a8;--text3:#4e5568;
@@ -18,8 +26,13 @@
   --r:14px;--rs:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;}
-body{overflow:hidden;}
+html{height:100%;background:var(--bg);}
+body{height:100%;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow:hidden;
+  padding-top:var(--sat);
+  padding-bottom:var(--sab);
+  padding-left:var(--sal);
+  padding-right:var(--sar);
+}
 
 /* LOGIN */
 #loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:500;}
@@ -210,6 +223,7 @@ body{overflow:hidden;}
 
 /* MOBILE */
 @media(max-width:720px){
+  .tfoot{padding-bottom:calc(11px + var(--sab));}
   body{overflow:auto;}
   .app{grid-template-columns:1fr;grid-template-rows:1fr auto;}
   .right{border-left:none;border-top:1px solid var(--border);max-height:42vh;}
@@ -857,4 +871,3 @@ function changeSize(delta) {
 </script>
 </body>
 </html>
-
