@@ -208,16 +208,6 @@ body{overflow:hidden;}
 .size-btn:hover { border-color: var(--green); color: var(--green); }
 .size-val { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text2); min-width: 28px; text-align: center; }
 
-/* HISTORIQUE VENTES */
-.histo-bar{border-top:1px solid var(--border);flex-shrink:0;max-height:160px;overflow-y:auto;}
-.histo-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;padding:7px 13px 4px;display:flex;justify-content:space-between;align-items:center;}
-.histo-item{display:flex;align-items:center;gap:8px;padding:5px 13px;border-bottom:1px solid var(--border);font-size:12px;}
-.histo-item:last-child{border-bottom:none;}
-.histo-time{color:var(--text3);font-family:'DM Mono',monospace;min-width:38px;font-size:10px;}
-.histo-detail{flex:1;color:var(--text2);}
-.histo-amt{color:var(--green);font-family:'DM Mono',monospace;font-weight:600;min-width:52px;text-align:right;}
-.histo-cancel{padding:2px 7px;border-radius:5px;border:1px solid rgba(240,82,82,.3);background:var(--rdim);color:var(--red);font-size:10px;cursor:pointer;font-family:'DM Sans',sans-serif;}
-
 /* MOBILE */
 @media(max-width:720px){
   body{overflow:auto;}
@@ -329,17 +319,10 @@ body{overflow:hidden;}
     <div class="titems" id="titems">
       <div class="empty"><div class="empty-i">🧾</div><div class="empty-t">Appuyez sur un produit<br>pour démarrer</div></div>
     </div>
-    <div class="histo-bar" id="histoBar" style="display:none;">
-      <div class="histo-title">
-        <span>Dernières ventes</span>
-        <span id="histoAnnulBtn" style="font-size:10px;color:var(--red);cursor:pointer;display:none;" onclick="annulerDerniereVente()">↩ Annuler la dernière</span>
-      </div>
-      <div id="histoList"></div>
-    </div>
     <div class="tfoot">
       <div class="totalline"><span class="totallbl">Total</span><span class="totalval" id="totalval">0,00 €</span></div>
       <div class="pays" style="grid-template-columns:1fr 1fr 1fr;">
-        <button class="paybtn on" id="p-esp" onclick="setPay('Espèces')">💵 Espèces</button>
+        <button class="paybtn on" id="p-esp" onclick="setPay('Especes')">💵 Especes</button>
         <button class="paybtn" id="p-cb" onclick="setPay('CB')">💳 CB</button>
         <button class="paybtn" id="p-ard" onclick="setPay('Ardoise')">📒 Ardoise</button>
       </div>
@@ -425,7 +408,7 @@ body{overflow:hidden;}
       <div style="font-size:11px;color:var(--text2);">🏦 Fonds de caisse à laisser</div>
       <div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace;">30,00 €</div>
     </div>
-    <div class="slbl">Stocks — ouverture vs maintenant</div>
+    <div class="slbl">État des stocks</div>
     <div id="cloStocks" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;"></div>
     <div class="slbl">Note (optionnel)</div>
     <textarea id="cloNote" placeholder="Observations, incidents..." style="width:100%;height:68px;padding:9px 11px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:none;line-height:1.5;margin-bottom:4px;"></textarea>
@@ -508,7 +491,7 @@ const FONDS=30;
 
 // ── ÉTAT ──────────────────────────────────────────────────────
 let url=localStorage.getItem('url')||'';
-let payM='Espèces',cart={},me=null;
+let payM='Especes',cart={},me=null;
 let users   =JSON.parse(localStorage.getItem('users')   ||'null')||DU;
 let products=JSON.parse(localStorage.getItem('products')||'null')||DP;
 let stocks  =JSON.parse(localStorage.getItem('stocks')  ||'{}');
@@ -538,17 +521,7 @@ function login(uid){
   document.getElementById('uname').textContent=me.name;
   document.getElementById('adminBtn').style.display=me.admin?'':'none';
   document.getElementById('adminBtnM').style.display=me.admin?'':'none';
-  // Sauvegarder stocks d'ouverture si nouveau jour
-  var soKey = 'stocks_ouverture';
-  var soDay = localStorage.getItem('stocks_ouverture_date');
-  if(soDay !== today) {
-    localStorage.setItem(soKey, JSON.stringify(stocks));
-    localStorage.setItem('stocks_ouverture_date', today);
-  }
   updateStats();renderProducts();checkAlerts();syncStatus();updateArdBtn();
-  renderHistorique();
-  // Charger config depuis Sheets si connecté
-  if(url) chargerConfigDepuisSheets();
 }
 function logout(){
   me=null;cart={};
@@ -609,7 +582,7 @@ function renderTicket(){
 }
 
 // ── PAIEMENT ─────────────────────────────────────────────────
-function setPay(m){payM=m;document.querySelectorAll('.paybtn').forEach(b=>b.classList.remove('on'));const map={'Espèces':'esp','CB':'cb','Ardoise':'ard'};document.getElementById('p-'+map[m])?.classList.add('on');}
+function setPay(m){payM=m;document.querySelectorAll('.paybtn').forEach(b=>b.classList.remove('on'));const map={'Especes':'esp','CB':'cb','Ardoise':'ard'};document.getElementById('p-'+map[m])?.classList.add('on');}
 
 // ── VALIDER VENTE ─────────────────────────────────────────────
 async function valider(){
@@ -621,9 +594,7 @@ async function valider(){
   items.forEach(it=>{const p=products.find(x=>x.sk===it.sk);if(p&&stocks[p.id]!==undefined)stocks[p.id]=Math.max(0,stocks[p.id]-it.qty);});
   localStorage.setItem('stocks',JSON.stringify(stocks));
   cart={};renderTicket();renderProducts();checkAlerts();
-  ajouterHistorique(items, +tot.toFixed(2), payM);
   await sync({action:'vente',date:today,time:heure(),vendeur:me?.name||'',items,total:+tot.toFixed(2),paiement:payM},'Vente enregistrée — '+fmt(tot));
-  if(url) pousserConfigVersSheets();
 }
 
 // ── RÉASSORT ─────────────────────────────────────────────────
@@ -660,22 +631,15 @@ function openCloture(){
   document.getElementById('cloTotal').textContent=fmt(FONDS+day.ca);
   document.getElementById('cloRetirer').textContent=fmt(day.ca);
   const el=document.getElementById('cloStocks');
-  var stocksOuv = JSON.parse(localStorage.getItem('stocks_ouverture') || '{}');
   el.innerHTML=products.filter(p=>p.active!==false).map(p=>{
     const s=stocks[p.id],hasS=s!==undefined,isCrit=hasS&&s<=2,isLow=hasS&&s<=p.alert&&!isCrit;
-    const sOuv=stocksOuv[p.id];
-    const diff=hasS&&sOuv!==undefined?s-sOuv:null;
     const bg=isCrit?'rgba(240,82,82,.15)':isLow?'rgba(245,158,11,.15)':'var(--bg3)';
     const col=isCrit?'var(--red)':isLow?'var(--amber)':'var(--text2)';
     const bord=isCrit?'rgba(240,82,82,.35)':isLow?'rgba(245,158,11,.35)':'var(--border)';
-    const diffTxt=diff!==null?'<span style="font-size:10px;color:'+(diff<0?'var(--red)':'var(--text3)')+';">'+(diff<0?diff:'±0')+'</span>':'';
-    const ouvTxt=sOuv!==undefined?'<span style="font-size:10px;color:var(--text3);">ouv:'+sOuv+'</span>':'';
     return`<div style="display:flex;align-items:center;gap:5px;padding:5px 9px;background:${bg};border:1px solid ${bord};border-radius:8px;">
       <span style="font-size:14px;">${p.emoji}</span>
       <span style="font-size:12px;font-weight:500;">${p.name}</span>
-      ${ouvTxt}
       <span style="font-size:12px;font-family:'DM Mono',monospace;color:${col};font-weight:600;">${hasS?s:'?'}</span>
-      ${diffTxt}
       ${isCrit?'<span style="font-size:10px;color:var(--red);">⚠️</span>':isLow?'<span style="font-size:10px;color:var(--amber);">↓</span>':''}
     </div>`;
   }).join('');
@@ -689,8 +653,6 @@ async function validerCloture(){
   await sync(payload,'Journée clôturée');
   day={tx:0,art:0,ca:0,date:today};saveDay();
   cart={};renderTicket();updateStats();
-  historiqueVentes=[];localStorage.setItem('historique','[]');renderHistorique();
-  if(url) pousserConfigVersSheets();
   setTimeout(()=>logout(),400);
 }
 
@@ -778,7 +740,6 @@ function saveAdmin(){
   localStorage.setItem('users',JSON.stringify(users));
   closeM('oAdmin');renderProducts();checkAlerts();renderLogin();
   toast('Administration enregistrée','ok');
-  if(url) pousserConfigVersSheets();
 }
 
 // ── SYNC SHEETS ───────────────────────────────────────────────
@@ -817,7 +778,6 @@ function heure(){return new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',mi
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===e.currentTarget)closeM(e.currentTarget.id);}));
 
 var ardoises = JSON.parse(localStorage.getItem('ardoises') || '[]');
-var historiqueVentes = JSON.parse(localStorage.getItem('historique') || '[]');
 
 function ouvrirArdoise() {
   var tot = 0;
@@ -845,7 +805,6 @@ function ouvrirArdoise() {
   cart = {}; renderTicket(); renderProducts(); checkAlerts();
   updateArdBtn();
   toast('Ardoise : ' + nom, 'ok');
-  if(url) pousserConfigVersSheets();
 }
 
 function ouvrirListeArdoises() {
@@ -871,7 +830,6 @@ function ouvrirListeArdoises() {
     localStorage.setItem('ardoises', JSON.stringify(ardoises));
     updateArdBtn();
     toast('Solde : ' + choix + ' - ' + fmt(total), 'ok');
-    if(url) pousserConfigVersSheets();
     sync({ action: 'solde_ardoise', date: today, time: heure(), vendeur: me ? me.name : '', nom: choix, total: +total.toFixed(2) }, 'Solde ' + choix);
   }
 }
@@ -895,128 +853,6 @@ function changeSize(delta) {
   localStorage.setItem('btnSize', btnSize);
   document.documentElement.style.setProperty('--btn-size', btnSize + 'px');
   document.getElementById('sizeVal').textContent = btnSize + 'px';
-}
-
-// ── HISTORIQUE DES VENTES ──────────────────────────────────
-function ajouterHistorique(items, total, paiement) {
-  historiqueVentes.unshift({
-    id: 'v' + Date.now(),
-    time: heure(),
-    items: items,
-    total: total,
-    paiement: paiement,
-    vendeur: me ? me.name : ''
-  });
-  // Garder les 10 dernières
-  if(historiqueVentes.length > 10) historiqueVentes = historiqueVentes.slice(0, 10);
-  localStorage.setItem('historique', JSON.stringify(historiqueVentes));
-  renderHistorique();
-}
-
-function renderHistorique() {
-  var bar = document.getElementById('histoBar');
-  var list = document.getElementById('histoList');
-  var annulBtn = document.getElementById('histoAnnulBtn');
-  if(!historiqueVentes.length) {
-    bar.style.display = 'none';
-    return;
-  }
-  bar.style.display = '';
-  annulBtn.style.display = historiqueVentes.length > 0 ? '' : 'none';
-  list.innerHTML = historiqueVentes.slice(0, 5).map(function(v, i) {
-    var detail = v.items.map(function(it){ return it.qty+'x '+it.name; }).join(', ');
-    var cancelBtn = i === 0 ? '' : '';
-    return '<div class="histo-item">' +
-      '<span class="histo-time">' + v.time + '</span>' +
-      '<span class="histo-detail">' + detail + '</span>' +
-      '<span class="histo-amt">' + fmt(v.total) + '</span>' +
-      '</div>';
-  }).join('');
-}
-
-function annulerDerniereVente() {
-  if(!historiqueVentes.length) return;
-  if(!window.confirm('Annuler la dernière vente ?')) return;
-  var v = historiqueVentes[0];
-  // Remettre les stocks
-  v.items.forEach(function(it) {
-    var p = products.find(function(x){ return x.sk === it.sk || x.name === it.name; });
-    if(p) stocks[p.id] = (stocks[p.id] || 0) + it.qty;
-  });
-  localStorage.setItem('stocks', JSON.stringify(stocks));
-  // Déduire du CA
-  day.tx = Math.max(0, day.tx - 1);
-  day.art = Math.max(0, day.art - v.items.reduce(function(s,it){return s+it.qty;}, 0));
-  day.ca = Math.max(0, +(day.ca - v.total).toFixed(2));
-  saveDay(); updateStats();
-  // Supprimer de l'historique
-  historiqueVentes.shift();
-  localStorage.setItem('historique', JSON.stringify(historiqueVentes));
-  renderHistorique(); renderProducts(); checkAlerts();
-  toast('Vente annulée — stocks remis', 'ok');
-  // Notifier Sheets
-  sync({action:'annulation',date:today,time:heure(),vendeur:me?me.name:'',items:v.items,total:v.total}, 'Annulation enregistrée');
-}
-
-// ── PERSISTANCE CONFIG VIA SHEETS ─────────────────────────
-async function chargerConfigDepuisSheets() {
-  try {
-    var res = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify({action:'getConfig'}), redirect:'follow'});
-    var data = await res.json();
-    if(data.status === 'ok' && data.config) {
-      var cfg = data.config;
-      if(cfg.users && cfg.users.length) {
-        users = cfg.users;
-        localStorage.setItem('users', JSON.stringify(users));
-        renderLogin();
-      }
-      if(cfg.products && cfg.products.length) {
-        products = cfg.products;
-        localStorage.setItem('products', JSON.stringify(products));
-        renderProducts();
-      }
-      if(cfg.stocks) {
-        stocks = cfg.stocks;
-        localStorage.setItem('stocks', JSON.stringify(stocks));
-        renderProducts(); checkAlerts();
-      }
-      if(cfg.ardoises) {
-        ardoises = cfg.ardoises;
-        localStorage.setItem('ardoises', JSON.stringify(ardoises));
-        updateArdBtn();
-      }
-      if(cfg.day && cfg.day.date === today) {
-        day = cfg.day;
-        saveDay(); updateStats();
-      }
-      if(cfg.historique) {
-        historiqueVentes = cfg.historique;
-        localStorage.setItem('historique', JSON.stringify(historiqueVentes));
-        renderHistorique();
-      }
-      setSS('ok', 'Synchronisé');
-    }
-  } catch(e) { /* silencieux */ }
-}
-
-async function pousserConfigVersSheets() {
-  if(!url) return;
-  try {
-    var payload = {
-      action: 'saveConfig',
-      config: {
-        users: users,
-        products: products,
-        stocks: stocks,
-        ardoises: ardoises,
-        day: day,
-        historique: historiqueVentes
-      }
-    };
-    var res = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body:JSON.stringify(payload), redirect:'follow'});
-    var data = await res.json();
-    if(data.status === 'ok') setSS('ok', 'Synchronisé');
-  } catch(e) { /* silencieux */ }
 }
 </script>
 </body>
